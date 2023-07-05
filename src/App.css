@@ -1,0 +1,28 @@
+.ocean {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-color: #a3d9ff;
+  overflow: hidden;
+}
+
+.fish {
+  position: absolute;
+  width: 40px;
+  height: 20px;
+}
+
+.shark {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.food {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background-color: #30bf30;
+  border-radius: 50%;
+}
