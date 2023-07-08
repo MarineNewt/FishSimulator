@@ -1,9 +1,13 @@
 import { createContext, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import useAnimationFrame from "../hooks/useAnimationFrame";
-import {findClosest, applyForce, updatePosition, distanceBetween, limitVelocity} from "./Movements";
+import {applyForce, cohesionForce, alignForce, separationForce, randomForce, endforce, findClosest, updatePosition, distanceBetween, limitVelocity} from "./Movements";
 
 export const OceanContext = createContext();
+
+const delay = ms => new Promise(
+  resolve => setTimeout(resolve, ms)
+);
 
 const generateStats = (count, type, maxX, maxY) => {
   const positions = [];
@@ -12,6 +16,7 @@ const generateStats = (count, type, maxX, maxY) => {
   if(type === "shark"){mxspeedbuff = 0.6; forcebuff = 0.008}
   if(type === "fish"){mxspeedbuff = 0.4; forcebuff = 0.002}
   for (let i = 0; i < count; i++) {
+    let speciesdet = Math.floor(Math.random() * 2)    // 0 or 1 species
     const position = {
       id: uuidv4(),
       x: Math.random() * maxX,
@@ -22,12 +27,11 @@ const generateStats = (count, type, maxX, maxY) => {
       traits: {
         maxSpeed: Math.random() * 1 + mxspeedbuff,  //max velocity
         force: Math.random() * 0.02 + forcebuff,  //force towards fish, food
-        species: Math.floor(Math.random() * 2)    // 0 or 1 species
+        species: speciesdet
       }
     };
     positions.push(position);
   }
-
   return positions;
 };
 
@@ -40,124 +44,10 @@ export const OceanProvider = ({ children }) => {
   const maxY = window.innerHeight;
 
   useState(() => {
-    setFishes(generateStats(50, "fish", maxX, maxY));
+    setFishes(generateStats(25, "fish", maxX, maxY));
     setSharks(generateStats(2, "shark",maxX, maxY));
-    setFood(generateStats(100, "food", maxX, maxY));
+    setFood(generateStats(50, "food", maxX, maxY));
   }, []);
-
-  const alignForce = (entity, neighbors, maxX, maxY, alignmentFactor) => {
-    let totalX = 0;
-    let totalY = 0;
-    let count = 0;
-
-    neighbors.forEach((neighbor) => {
-      const distanceX = neighbor.x - entity.x;
-      const distanceY = neighbor.y - entity.y;
-      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-      if (distance > 0 && distance < 50) {
-        totalX += neighbor.velocity.x;
-        totalY += neighbor.velocity.y;
-        count++;
-      }
-    });
-
-    if (count > 0) {
-      totalX /= count;
-      totalY /= count;
-
-      const desiredVelocity = {
-        x: (totalX - entity.velocity.x) * alignmentFactor,
-        y: (totalY - entity.velocity.y) * alignmentFactor
-      };
-
-      entity.acceleration.x += desiredVelocity.x;
-      entity.acceleration.y += desiredVelocity.y;
-    }
-  };
-
-  const cohesionForce = (entity, neighbors, maxX, maxY, cohesionFactor) => {
-    let totalX = 0;
-    let totalY = 0;
-    let count = 0;
-
-    neighbors.forEach((neighbor) => {
-      const distanceX = neighbor.x - entity.x;
-      const distanceY = neighbor.y - entity.y;
-      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-      if (distance > 0 && distance < 50) {
-        totalX += neighbor.x;
-        totalY += neighbor.y;
-        count++;
-      }
-    });
-
-    if (count > 0) {
-      totalX /= count;
-      totalY /= count;
-
-      const target = {
-        x: totalX,
-        y: totalY
-      };
-
-      applyForce(entity, target, cohesionFactor);
-    }
-  };
-
-  const separationForce = (agent, agents, separationDistance) => {
-    let forceX = 0;
-    let forceY = 0;
-    let count = 0;
-
-    agents.forEach((other) => {
-      if (other.id === agent.id) {
-        return;
-      }
-
-      const distanceX = other.x - agent.x;
-      const distanceY = other.y - agent.y;
-      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-      if (distance < separationDistance) {
-        forceX -= distanceX;
-        forceY -= distanceY;
-        count++;
-      }
-    });
-
-    if (count > 0) {
-      forceX /= count;
-      forceY /= count;
-
-      const forceMagnitude = Math.sqrt(forceX * forceX + forceY * forceY);
-      if (forceMagnitude > 0) {
-        forceX = (forceX / forceMagnitude) * 0.03;
-        forceY = (forceY / forceMagnitude) * 0.03;
-      }
-    }
-
-    agent.acceleration.x += forceX;
-    agent.acceleration.y += forceY;
-  };
-
-  const randomForce = (entity, randomFactor) => {
-    entity.acceleration.x += (Math.random() * 2 - 1) * randomFactor;
-    entity.acceleration.y += (Math.random() * 2 - 1) * randomFactor;
-  };
-
-  const endforce = (entity, maxX, maxY) => {
-    const distanceX = maxX - entity.x;
-    const distanceY = maxY - entity.y;
-    if(distanceX < 15 || entity.x < 15 || distanceY < 15 || entity.y < 15 ){
-      const target = {
-        x: maxX/2,
-        y: maxY/2
-      };
-      applyForce(entity, target, 0.02);
-    }
-  };
 
   const respawnFood = (index) => {
     setFood((prevFood) => {
@@ -172,6 +62,7 @@ export const OceanProvider = ({ children }) => {
       });
       return newFood;
     });
+
   };
 
   const removeFish = (fishId) => {
@@ -206,8 +97,8 @@ export const OceanProvider = ({ children }) => {
 
     randomForce(fish, 0.005);
     separationForce(fish, fishes, 20);
-    alignForce(fish, fishes, maxX, maxY, 0.1);
-    cohesionForce(fish, fishes, maxX, maxY, 0.01);
+    if(fish.traits.species === 1) alignForce(fish, fishes, maxX, maxY, 0.1);
+    if(fish.traits.species === 1) cohesionForce(fish, fishes, maxX, maxY, 0.01);
     endforce(fish, maxX, maxY);
 
     // Apply avoidance force if the shark is too close
@@ -227,7 +118,7 @@ export const OceanProvider = ({ children }) => {
       const distanceY = foodParticle.y - fish.y;
       const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
-      if (distance < 10) {
+      if (distance < 8) {
         respawnFood(foodIndex);
         fish.energy += 50;
       }
@@ -307,9 +198,9 @@ export const OceanProvider = ({ children }) => {
       })
     );
 
-    if (Math.random() < 0.01)
+    if (Math.random() < 0.0065)
       setFishes(fishes.concat(generateStats(1, "fish", maxX, maxY)));
-    if (Math.random() < 0.0005)
+    if (Math.random() < 0.0003)
       setSharks(sharks.concat(generateStats(1, "shark", maxX, maxY)));
   });
 
