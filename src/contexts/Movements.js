@@ -110,8 +110,10 @@ export const separationForce = (agent, agents, separationDistance) => {
 };
 
 export const randomForce = (entity, randomFactor) => {
-  entity.acceleration.x += (Math.random() * 2 - 1) * randomFactor;
-  entity.acceleration.y += (Math.random() * 2 - 1) * randomFactor;
+  if(Math.random() > 0.999){
+    entity.velocity.x += ((Math.random() * 2) - 1)
+    entity.velocity.y += ((Math.random() * 2) - 1)
+  }
 };
 
 export const endforce = (entity, maxX, maxY) => {

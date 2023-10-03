@@ -5,6 +5,10 @@ import {applyForce, cohesionForce, alignForce, separationForce, randomForce, end
 
 export const OceanContext = createContext();
 
+const foodrate = 0.02;
+const fishrate = 0.001;
+const sharkrate = 0.0002;
+
 const delay = ms => new Promise(
   resolve => setTimeout(resolve, ms)
 );
@@ -49,6 +53,7 @@ export const OceanProvider = ({ children }) => {
     setFood(generateStats(50, "food", maxX, maxY));
   }, []);
 
+  /* 
   const respawnFood = (index) => {
     setFood((prevFood) => {
       const newFood = [...prevFood];
@@ -63,6 +68,12 @@ export const OceanProvider = ({ children }) => {
       return newFood;
     });
 
+  };
+  */
+  const respawnFood = (index) => {
+    setFood((prevFood) => {
+      return prevFood.filter((food) => food.id !== index);
+    });
   };
 
   const removeFish = (fishId) => {
@@ -95,7 +106,7 @@ export const OceanProvider = ({ children }) => {
 
     if (closestFood) applyForce(fish, closestFood, fish.traits.force);
 
-    randomForce(fish, 0.005);
+    randomForce(fish);
     separationForce(fish, fishes, 20);
     if(fish.traits.species === 1) alignForce(fish, fishes, maxX, maxY, 0.1);
     if(fish.traits.species === 1) cohesionForce(fish, fishes, maxX, maxY, 0.01);
@@ -119,7 +130,7 @@ export const OceanProvider = ({ children }) => {
       const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
       if (distance < 8) {
-        respawnFood(foodIndex);
+        respawnFood(foodParticle.id);
         fish.energy += 50;
       }
     });
@@ -197,10 +208,11 @@ export const OceanProvider = ({ children }) => {
         return { ...fish };
       })
     );
-
-    if (Math.random() < 0.0065)
+    if (Math.random() < foodrate)
+      setFood(food.concat(generateStats(1, "food", maxX, maxY)));
+    if (Math.random() < fishrate)
       setFishes(fishes.concat(generateStats(1, "fish", maxX, maxY)));
-    if (Math.random() < 0.0003)
+    if (Math.random() < sharkrate)
       setSharks(sharks.concat(generateStats(1, "shark", maxX, maxY)));
   });
 
