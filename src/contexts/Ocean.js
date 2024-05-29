@@ -5,7 +5,7 @@ import {applyForce, cohesionForce, alignForce, separationForce, randomForce, end
 
 export const OceanContext = createContext();
 
-const foodrate = 0.02;
+const foodrate = 0.01;
 const fishrate = 0.001;
 const sharkrate = 0.0002;
 
@@ -38,6 +38,29 @@ const generateStats = (count, type, maxX, maxY) => {
   }
   return positions;
 };
+const generateFoodStats = (count, maxX, maxY) => {
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const position = {
+      id: uuidv4(),
+      x: Math.random() * maxX,
+      y: Math.random() * maxY,
+    };
+    positions.push(position);
+  }
+  return positions;
+};
+const AddFoodClick = (xPos, yPos) => {
+  const positions = [];
+  const position = {
+    id: uuidv4(),
+    x: xPos,
+    y: yPos,
+  };
+  positions.push(position);
+  return positions;
+};
+
 
 export const OceanProvider = ({ children }) => {
   const [fishes, setFishes] = useState([]);
@@ -70,7 +93,7 @@ export const OceanProvider = ({ children }) => {
 
   };
   */
-  const respawnFood = (index) => {
+  const removeFood = (index) => {
     setFood((prevFood) => {
       return prevFood.filter((food) => food.id !== index);
     });
@@ -130,7 +153,7 @@ export const OceanProvider = ({ children }) => {
       const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
       if (distance < 8) {
-        respawnFood(foodParticle.id);
+        removeFood(foodParticle.id);
         fish.energy += 50;
       }
     });
@@ -209,7 +232,7 @@ export const OceanProvider = ({ children }) => {
       })
     );
     if (Math.random() < foodrate)
-      setFood(food.concat(generateStats(1, "food", maxX, maxY)));
+      setFood(food.concat(generateFoodStats(1, maxX, maxY)));
     if (Math.random() < fishrate)
       setFishes(fishes.concat(generateStats(1, "fish", maxX, maxY)));
     if (Math.random() < sharkrate)
@@ -217,7 +240,7 @@ export const OceanProvider = ({ children }) => {
   });
 
   return (
-    <OceanContext.Provider value={{ fishes, sharks, food }}>
+    <OceanContext.Provider value={{ fishes, sharks, food, setFood, AddFoodClick }}>
       {children}
     </OceanContext.Provider>
   );

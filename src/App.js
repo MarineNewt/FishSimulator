@@ -2,6 +2,8 @@ import React, { useContext } from "react";
 import "./App.css";
 import { OceanProvider, OceanContext } from "./contexts/Ocean";
 
+const maxX = window.innerWidth;
+const maxY = window.innerHeight;
 const Fish = ({ x, y, energy, velocity, traits }) => {
   const angle = 45 + Math.atan2(velocity.y, velocity.x) * (180 / Math.PI);
   //#4DB6AC
@@ -74,10 +76,10 @@ const Food = ({ x, y }) => (
 );
 
 const Ocean = () => {
-  const { fishes, sharks, food } = useContext(OceanContext);
+  const { fishes, sharks, food, setFood, AddFoodClick } = useContext(OceanContext);
 
   return (
-    <div className="ocean">
+    <div className="ocean" onClick={ (e) => {setFood(food.concat(AddFoodClick(e.pageX, e.pageY)))}}>
       {fishes.map((fish) => (
         <Fish key={fish.id} {...fish} />
       ))}
